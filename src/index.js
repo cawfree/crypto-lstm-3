@@ -3,7 +3,7 @@ import { config as dotenv } from "dotenv";
 dotenv();
 
 import { createClient, toSingleLine, toWords } from "./twitter";
-import { prepareModel } from "./word2vec";
+import { prepareModel, words2vec } from "./word2vec";
 
 const {
   TWITTER_CONSUMER_KEY: consumer_key,
@@ -22,5 +22,13 @@ const {
       access_token_secret,
     },
   );
-  subscribeTo('bitcoin', ({ text }) => console.log(toWords(toSingleLine(text))));
+  subscribeTo(
+    'bitcoin',
+    ({ text }) => {
+      const words = toWords(toSingleLine(text));
+      if (words.length > 0) {
+        console.log(words2vec(getVectors, words));
+      }
+    },
+  );
 })();
