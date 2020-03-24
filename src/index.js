@@ -17,8 +17,8 @@ const {
 
 (async () => {
   const { push: pushPrice, get: getPrice } = await createBacklog(false, "(Number, Number, Number, Number)");
+  const { push: pushMerge, get: getMerge } = await createBacklog(false, "{prices:(Number,Number,Number,Number),words:[[String]]}");
   const { push: pushWords, get: getWords } = await createBacklog(true, "[String]");
-  //const { push: pushMerge, get: getMerge } = await createBacklog(false, "{price:(Number, Number, Number, Number)},words:[[String]]...");
   //const { getVectors } = await prepareModel();
   const { subscribeTo } = await createClient(
     {
@@ -28,23 +28,22 @@ const {
       access_token_secret,
     },
   );
+  const processHashtag = () => ({ text, created_at: created }) => {
+    const words = toWords(toSingleLine(text));
+    if (words.length > 0) {
+      const t = moment(created).startOf("minute").toDate().getTime();
+      return pushWords(t, words);
+    }
+    return undefined;
+  };
   await createSync(
     "BTC",
     async (values, meta) => {
       values.map(([t, ...ohlc]) => pushPrice(moment(t).toDate().getTime(), ohlc));
-      const merge = await mergeBacklogs({ prices: getPrice, words: getWords });
-      console.log(JSON.stringify(merge));
+      Object.entries(await mergeBacklogs({ prices: getPrice, words: getWords }))
+        .map(([t, v]) => pushMerge(Number.parseInt(t), v));
     },
   );
-  subscribeTo(
-    'bitcoin',
-    ({ text, created_at: created }) => {
-      const words = toWords(toSingleLine(text));
-      if (words.length > 0) {
-        const t = moment(created).startOf("minute").toDate().getTime();
-        return pushWords(t, words);
-      }
-      return undefined;
-    },
-  );
+  /* hashtags */
+  subscribeTo('bitcoin', processHashtag());
 })();
