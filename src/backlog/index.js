@@ -73,3 +73,24 @@ export const mergeBacklogs = async (...args) => {
   }
   throw new Error(`Expected (Object), encountered ${args}.`);
 };
+
+// XXX: Returns the valid minimum and maximum
+export const getBounds = async (...args) => {
+  if (typeCheck("[Function]", args) && args.length > 0) {
+    const global = args.map(
+      (getData) => {
+        const t = Object.keys(getData())
+          .map(k => Number.parseInt(k));
+        return {
+          min: Math.min(...t),
+          max: Math.max(...t),
+        };
+      },
+    );
+    return {
+      min: Math.max(...global.map(({ min }) => min)),
+      max: Math.min(...global.map(({ max }) => max)),
+    };
+  }
+  throw new Error(`Expected [Function], encountered ${args}.`);
+};

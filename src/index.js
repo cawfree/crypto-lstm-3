@@ -3,7 +3,7 @@ import moment from "moment";
 
 dotenv();
 
-import { createBacklog, mergeBacklogs } from "./backlog";
+import { createBacklog, mergeBacklogs, getBounds } from "./backlog";
 import { createSync } from "./price";
 import { createClient, toSingleLine, toWords } from "./twitter";
 import { prepareModel } from "./word2vec";
@@ -56,11 +56,21 @@ const {
       Object.entries(await mergeBacklogs({ prices: getPrice, words: getWords }))
         .map(([t, v]) => pushMerge(Number.parseInt(t), v));
       const m = moment();
-      await discardPrice(getDiscardTime(m));
-      await discardMerge(getDiscardTime(m));
-      await discardWords(getDiscardTime(m));
+      // TODO: Should do some threaded intensive processing here.
+      const { min, max } = await getBounds(getMerge);
+      // XXX: The amount of data we've got in the buffer allows us to make a prediction
+      //      into the future.
+      if ((max - min) >= ((backlogMinutes + predictionMinutes) * 1000)) {
+        // TODO: Need to wait until there's a full minute of data.
+        // TODO: Should only discard after we've done some valuable processing.
+        // TODO: Should probably re-instate another training loop after we've finished.
+        await discardPrice(getDiscardTime(moment(min)));
+        await discardMerge(getDiscardTime(moment(min)));
+        await discardWords(getDiscardTime(moment(min)));
+      }
     },
   );
+
   /* hashtags */
   subscribeTo('bitcoin', processHashtag());
 })();
