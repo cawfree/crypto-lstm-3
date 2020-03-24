@@ -1,9 +1,12 @@
 import { config as dotenv } from "dotenv";
+import moment from "moment";
 
 dotenv();
 
+import { createBacklog, mergeBacklogs } from "./backlog";
+import { createSync } from "./price";
 import { createClient, toSingleLine, toWords } from "./twitter";
-import { prepareModel, words2vec } from "./word2vec";
+import { prepareModel } from "./word2vec";
 
 const {
   TWITTER_CONSUMER_KEY: consumer_key,
@@ -13,7 +16,10 @@ const {
 } = process.env;
 
 (async () => {
-  const { getVectors } = await prepareModel();
+  const { push: pushPrice, get: getPrice } = await createBacklog(false, "(Number, Number, Number, Number)");
+  const { push: pushWords, get: getWords } = await createBacklog(true, "[String]");
+  //const { push: pushMerge, get: getMerge } = await createBacklog(false, "{price:(Number, Number, Number, Number)},words:[[String]]...");
+  //const { getVectors } = await prepareModel();
   const { subscribeTo } = await createClient(
     {
       consumer_key,
@@ -22,13 +28,23 @@ const {
       access_token_secret,
     },
   );
+  await createSync(
+    "BTC",
+    async (values, meta) => {
+      values.map(([t, ...ohlc]) => pushPrice(moment(t).toDate().getTime(), ohlc));
+      const merge = await mergeBacklogs({ prices: getPrice, words: getWords });
+      console.log(JSON.stringify(merge));
+    },
+  );
   subscribeTo(
     'bitcoin',
-    ({ text }) => {
+    ({ text, created_at: created }) => {
       const words = toWords(toSingleLine(text));
       if (words.length > 0) {
-        console.log(words2vec(getVectors, words));
+        const t = moment(created).startOf("minute").toDate().getTime();
+        return pushWords(t, words);
       }
+      return undefined;
     },
   );
 })();

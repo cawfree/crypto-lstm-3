@@ -25,7 +25,9 @@
   "dependencies": {
     "@tensorflow/tfjs": "^1.7.0",
     "@tensorflow/tfjs-node": "^1.7.0",
+    "axios": "^0.19.2",
     "dotenv": "^8.2.0",
+    "klona": "^1.1.1",
     "moment": "^2.24.0",
     "twitter": "^1.7.1",
     "type-check": "^0.3.2",
