@@ -19,7 +19,7 @@ const createDiscardThunk = backlog => (...args) => {
   if (typeCheck("(Number)", args)) {
     const [t] = args;
     for (const k in backlog) {
-      if (Number.parseInt(k) < t) {
+      if (Number.parseInt(k) <= t) {
         delete backlog[k];
       }
     }
@@ -93,4 +93,17 @@ export const getBounds = async (...args) => {
     };
   }
   throw new Error(`Expected [Function], encountered ${args}.`);
+};
+
+export const getBetween = async (...args) => {
+  if (typeCheck("(Function, Number, Number)", args)) {
+    const [getData, min, max] = args;
+    return Object.fromEntries(
+      Object.entries(getData())
+        .filter(([k]) => (
+          Number.parseInt(k) >= min && Number.parseInt(k) < max
+        )),
+    );
+  }
+  throw new Error(`Expected (Function, Number, Number), encountered ${args}.`);
 };
