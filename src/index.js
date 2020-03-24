@@ -16,9 +16,18 @@ const {
 } = process.env;
 
 (async () => {
-  const { push: pushPrice, get: getPrice } = await createBacklog(false, "(Number, Number, Number, Number)");
-  const { push: pushMerge, get: getMerge } = await createBacklog(false, "{prices:(Number,Number,Number,Number),words:[[String]]}");
-  const { push: pushWords, get: getWords } = await createBacklog(true, "[String]");
+  
+  // to generate a prediction, we will use backlogMinutes of data
+  const backlogMinutes = 1;//5;
+  // the amount of minutes into the future we will be predicting
+  const predictionMinutes = 1;//30;
+
+  // this implies that we need to cut off the top 5 (full) minutes to make a prediction
+  // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
+  
+  const { push: pushPrice, get: getPrice, discard: discardPrice } = await createBacklog(false, "(Number, Number, Number, Number)");
+  const { push: pushMerge, get: getMerge, discard: discardMerge } = await createBacklog(false, "{prices:(Number,Number,Number,Number),words:[[String]]}");
+  const { push: pushWords, get: getWords, discard: discardWords } = await createBacklog(true, "[String]");
   //const { getVectors } = await prepareModel();
   const { subscribeTo } = await createClient(
     {
@@ -36,12 +45,20 @@ const {
     }
     return undefined;
   };
+  const getDiscardTime = m => moment(m)
+    .subtract(backlogMinutes + predictionMinutes, "minutes")
+    .toDate()
+    .getTime();
   await createSync(
     "BTC",
     async (values, meta) => {
       values.map(([t, ...ohlc]) => pushPrice(moment(t).toDate().getTime(), ohlc));
       Object.entries(await mergeBacklogs({ prices: getPrice, words: getWords }))
         .map(([t, v]) => pushMerge(Number.parseInt(t), v));
+      const m = moment();
+      await discardPrice(getDiscardTime(m));
+      await discardMerge(getDiscardTime(m));
+      await discardWords(getDiscardTime(m));
     },
   );
   /* hashtags */

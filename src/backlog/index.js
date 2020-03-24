@@ -15,12 +15,26 @@ const createAddThunk = (acc, format, backlog) => (...args) => {
   throw new Error(`Expected (Number, *), encountered ${args}.`);
 };
 
+const createDiscardThunk = backlog => (...args) => {
+  if (typeCheck("(Number)", args)) {
+    const [t] = args;
+    for (const k in backlog) {
+      if (Number.parseInt(k) < t) {
+        delete backlog[k];
+      }
+    }
+    return undefined;
+  }
+  throw new Error(`Expected (Number), encountered ${args}.`);
+};
+
 export const createBacklog = async (...args) => {
   if (typeCheck("(Boolean, String)", args)) {
     const [acc, format] = args;
     const backlog = {};
     return Object.freeze({
       push: createAddThunk(acc, format, backlog),
+      discard: createDiscardThunk(backlog),
       get: () => klona(backlog),
     });
   }
