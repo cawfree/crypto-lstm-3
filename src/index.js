@@ -84,4 +84,5 @@ const {
   );
   /* hashtags */
   subscribeTo('bitcoin', processHashtag());
+  subscribeTo('blockchain', processHashtag());
 })();
