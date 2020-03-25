@@ -101,7 +101,7 @@ export const getBetween = (...args) => {
     return Object.fromEntries(
       Object.entries(getData())
         .filter(([k]) => (
-          Number.parseInt(k) >= min && Number.parseInt(k) <= max
+          Number.parseInt(k) >= min && Number.parseInt(k) < max
         )),
     );
   }

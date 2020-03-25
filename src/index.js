@@ -30,7 +30,10 @@ const {
   const { push: pushMerge, get: getMerge, discard: discardMerge } = await createBacklog(false, "{prices:(Number,Number,Number,Number),words:[[String]]}");
   const { push: pushWords, get: getWords, discard: discardWords } = await createBacklog(true, "[String]");
   const { getVectors } = await prepareModel();
-  const { predict, nextEpoch } = await createLstm(getVectors);
+  const { predict, nextEpoch } = await createLstm(
+    getVectors,
+    { backlogMinutes, predictionMinutes },
+  );
   const { subscribeTo } = await createClient(
     {
       consumer_key,
@@ -76,9 +79,9 @@ const {
         //       We **do not** however throw away the most recent entry, since this will
         //       serve as the reference input for the next frame. This is possible because 
         //       discardPrice is not min-inclusive.
-        await discardPrice(min + dt);
-        await discardMerge(min + dt);
-        await discardWords(min + dt);
+        await discardPrice(min + dt - (60 * 1000));
+        await discardMerge(min + dt - (60 * 1000));
+        await discardWords(min + dt - (60 * 1000));
       }
     },
   );
