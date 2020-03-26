@@ -30,12 +30,22 @@ const sumAndNormalize = (arrayOfData) => {
   return scaleFeatures(rawData, mean, std);
 };
 
-export const createSegment = (getVectors, stimuli, predicts) => {
-  const { prices: [po, ph, pl, pc] } = predicts;
+export const createSegment = (getVectors, stimuli) => {
   const { words: bagOfWords } = stimuli;
   const normals = bagOfWords
     .map(([...words]) => sumAndNormalize(getVectors(words).map(({ values }) => values)));
   return tf.tensor1d(sumAndNormalize(normals));
+};
+
+const createSeries = data => Object.entries(data)
+  .map(([k, v]) => [Number.parseInt(k), v])
+  .sort(([t1], [t2]) => (t1 - t2))
+  .map(([_, data]) => data);
+
+const seriesToTensor = (series, getVectors, backlogMinutes) => {
+  const segments = [...Array(backlogMinutes)]
+    .map((_, i) => createSegment(getVectors, series[i]));
+  return tf.stack([tf.stack(segments)]);
 };
 
 // TODO: Need to enforce sample logging
@@ -87,33 +97,28 @@ export const createLstm = async (getVectors, options = defaultOptions) => {
         throw new Error(`Expected ${maxSegments} segments, encountered ${numberOfSegments}.`);
       }
 
-      const [...series] = Object.entries(data)
-        .map(([k, v]) => [Number.parseInt(k), v])
-        .sort(([t1], [t2]) => (t1 - t2))
-        .map(([_, data]) => data);
-
+      const [...series] = createSeries(data);
       const { length: len, [0]: { prices: [o] }, [len - 1]: { prices: [_, h, l, c] } } = series;
 
-      //// XXX: Compute the total relative change in price for the prediction period.
+      // XXX: Compute the total relative change in price for the prediction period.
       const dp = (c - o) / o;
-
-      const segments = [];
-
-      for (let i = 0; i < backlogMinutes; i += 1) {
-        const stimuli = series[i];
-        const predicts = series[i + predictionMinutes];
-        segments.push(createSegment(getVectors, stimuli, predicts));
-      }
-
-      const xs = tf.stack([tf.stack(segments)]);
+      const xs = seriesToTensor(series, getVectors, backlogMinutes);
       const ys = tf.stack([tf.tensor1d(new Float32Array([dp]))]);
 
-      //// XXX: Fit the model against the new sample data.
+      // XXX: Fit the model against the new sample data.
       await model.fit(xs, ys, { epochs: 1 });
 
       xs.dispose();
       ys.dispose();
     },
-    predict: () => null,
+    predict: async (data) => {
+      const [...series] = createSeries(data);
+      const xs = seriesToTensor(series, getVectors, backlogMinutes);
+      const ys = model.predict(xs);
+      const [...results] = ys.dataSync();
+      xs.dispose();
+      ys.dispose();
+      return results;
+    },
   };
 };

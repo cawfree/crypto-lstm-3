@@ -19,9 +19,9 @@ const {
 (async () => {
   
   // to generate a prediction, we will use backlogMinutes of data
-  const backlogMinutes = 3;
+  const backlogMinutes = 15;
   // the amount of minutes into the future we will be predicting
-  const predictionMinutes = 2;
+  const predictionMinutes = 30;
 
   // this implies that we need to cut off the top 5 (full) minutes to make a prediction
   // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
@@ -89,7 +89,18 @@ const {
         //      predictionMinutes of data.
         // XXX: The time of the prediction is offset from the time at the beginning of
         //      our top samples + (predictionMinutes + backlogMinutes).
-        const futures = getBetween(getMerge, max - (backlogMinutes * 60 * 1000), max);
+        const future = getBetween(getMerge, max - (backlogMinutes * 60 * 1000), max);
+        const [nextScale] = await predict(future);
+
+        // TODO: Need to fix this. Basically need to enforce that the keys are sorted.
+        // TODO: Can likely elevate this to remove from the manual implementation inside
+        //       getSeries?
+        const [{ prices: [o] }] = Object.values(future);
+        const predictedPrice = o * nextScale;
+        const t = moment(max + (predictionMinutes * 60 * 1000));
+
+        // TODO: Configurable price representation.
+        console.log(`${t.format('HH:mm')}, $${predictedPrice}`);
       }
     },
   );
