@@ -92,7 +92,6 @@ export const createLstm = async (getVectors, options = defaultOptions) => {
         .sort(([t1], [t2]) => (t1 - t2))
         .map(([_, data]) => data);
 
-      //console.log(series);
       const { length: len, [0]: { prices: [o] }, [len - 1]: { prices: [_, h, l, c] } } = series;
 
       //// XXX: Compute the total relative change in price for the prediction period.
@@ -110,8 +109,7 @@ export const createLstm = async (getVectors, options = defaultOptions) => {
       const ys = tf.stack([tf.tensor1d(new Float32Array([dp]))]);
 
       //// XXX: Fit the model against the new sample data.
-      const x = await model.fit(xs, ys, { epochs: 1 });
-      console.log(x);
+      await model.fit(xs, ys, { epochs: 1 });
 
       xs.dispose();
       ys.dispose();

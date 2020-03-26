@@ -19,9 +19,9 @@ const {
 (async () => {
   
   // to generate a prediction, we will use backlogMinutes of data
-  const backlogMinutes = 2;
+  const backlogMinutes = 5;
   // the amount of minutes into the future we will be predicting
-  const predictionMinutes = 2;
+  const predictionMinutes = 5;
 
   // this implies that we need to cut off the top 5 (full) minutes to make a prediction
   // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
@@ -65,15 +65,14 @@ const {
       //      into the future.
       // XXX: We use +1 minute so that we have a minute of previous information to enter the frame with (this aids comparison).
       const dt = (backlogMinutes + predictionMinutes) * 60 * 1000;
-      if ((max - min) >= dt) {
+      // XXX: Checking for exact bounds causes range errors.
+      if ((max - min) > dt) {
 
         // XXX: getBetween is inclusive, so we include the top-most data.
         const data = getBetween(getMerge, min, min + dt);
 
         // XXX: Train the network.
         await nextEpoch(data);
-
-        // TODO: Should probably re-instate another training loop after we've finished.
 
         // XXX:  Here, discard all of the data we would have processed within this frame.
         //       We **do not** however throw away the most recent entry, since this will
