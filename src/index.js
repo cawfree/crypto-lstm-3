@@ -19,9 +19,9 @@ const {
 (async () => {
   
   // to generate a prediction, we will use backlogMinutes of data
-  const backlogMinutes = 15;
+  const backlogMinutes = 5;
   // the amount of minutes into the future we will be predicting
-  const predictionMinutes = 30;
+  const predictionMinutes = 5;
 
   // this implies that we need to cut off the top 5 (full) minutes to make a prediction
   // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
@@ -57,6 +57,7 @@ const {
 
       Object.entries(mergeBacklogs({ prices: getPrice, words: getWords }))
         .map(([t, v]) => pushMerge(Number.parseInt(t), v));
+      // TODO: Need to track missing entries. If they exist, clear the whole lot.
 
       // TODO: Should do some threaded intensive processing here.
       //       Must defer processing until a current round of training is over.
@@ -67,13 +68,12 @@ const {
       const dt = (backlogMinutes + predictionMinutes) * 60 * 1000;
       // XXX: Checking for exact bounds causes range errors.
       if ((max - min) > dt) {
-
         // XXX: getBetween is inclusive, so we include the top-most data.
         const data = getBetween(getMerge, min, min + dt);
+        const { length: numberOfSegments } = Object.entries(data);
 
         // XXX: Train the network.
         await nextEpoch(data);
-
         // XXX:  Here, discard all of the data we would have processed within this frame.
         //       We **do not** however throw away the most recent entry, since this will
         //       serve as the reference input for the next frame. This is possible because 
@@ -83,7 +83,6 @@ const {
         await discardPrice(min + (backlogMinutes * 60 * 1000));
         await discardMerge(min + (backlogMinutes * 60 * 1000));
         await discardWords(min + (backlogMinutes * 60 * 1000));
-        
         // XXX: To make a prediction, take the most recent backlogMinutes worth of data.
         //      We use this as a stimuli to force the network to predict the future
         //      predictionMinutes of data.
@@ -91,16 +90,15 @@ const {
         //      our top samples + (predictionMinutes + backlogMinutes).
         const future = getBetween(getMerge, max - (backlogMinutes * 60 * 1000), max);
         const [nextScale] = await predict(future);
-
         // TODO: Need to fix this. Basically need to enforce that the keys are sorted.
         // TODO: Can likely elevate this to remove from the manual implementation inside
         //       getSeries?
         const [{ prices: [o] }] = Object.values(future);
-        const predictedPrice = o * nextScale;
+        // XXX: We compute a _relative_ price change.
+        const predictedPrice = o * (1 + nextScale);
         const t = moment(max + (predictionMinutes * 60 * 1000));
-
         // TODO: Configurable price representation.
-        console.log(`${t.format('HH:mm')}, $${predictedPrice}`);
+        return console.log(`${t.format('HH:mm')}, $${predictedPrice}`);
       }
     },
   );

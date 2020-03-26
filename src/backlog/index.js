@@ -1,6 +1,11 @@
 import klona from "klona";
 import { typeCheck } from "type-check";
 
+const sortByTime = obj => Object.fromEntries(
+  Object.entries(obj)
+    .sort(([t1], [t2]) => (Number.parseInt(t1) - Number.parseInt(t2))),
+);
+
 const createAddThunk = (acc, format, backlog) => (...args) => {
   if (typeCheck(`(Number,${format})`, args)) {
     const [t, value] = args;
@@ -35,7 +40,9 @@ export const createBacklog = async (...args) => {
     return Object.freeze({
       push: createAddThunk(acc, format, backlog),
       discard: createDiscardThunk(backlog),
-      get: () => klona(backlog),
+      // XXX: Ensure the records are in order when they are returned.
+      //      (This makes them easier to reason about.)
+      get: () => sortByTime(klona(backlog)),
     });
   }
   throw new Error(`Expected (Boolean), encountered ${args}.`);
@@ -62,13 +69,14 @@ export const mergeBacklogs = (...args) => {
           },
           {},
         );
-      return Object.fromEntries(
-        Object.entries(results)
-          .filter(
-            ([k, r]) => (Object.keys(r).length === Object.keys(obj).length),
-          ),
+      return sortByTime(
+        Object.fromEntries(
+          Object.entries(results)
+            .filter(
+              ([k, r]) => (Object.keys(r).length === Object.keys(obj).length),
+            ),
+        ),
       );
-      return results;
     }
   }
   throw new Error(`Expected (Object), encountered ${args}.`);
