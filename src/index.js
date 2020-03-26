@@ -83,6 +83,13 @@ const {
         await discardPrice(min + (backlogMinutes * 60 * 1000));
         await discardMerge(min + (backlogMinutes * 60 * 1000));
         await discardWords(min + (backlogMinutes * 60 * 1000));
+        
+        // XXX: To make a prediction, take the most recent backlogMinutes worth of data.
+        //      We use this as a stimuli to force the network to predict the future
+        //      predictionMinutes of data.
+        // XXX: The time of the prediction is offset from the time at the beginning of
+        //      our top samples + (predictionMinutes + backlogMinutes).
+        const futures = getBetween(getMerge, max - (backlogMinutes * 60 * 1000), max);
       }
     },
   );
