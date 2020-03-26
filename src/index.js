@@ -64,7 +64,7 @@ const {
       // XXX: The amount of data we've got in the buffer allows us to make a prediction
       //      into the future.
       // XXX: We use +1 minute so that we have a minute of previous information to enter the frame with (this aids comparison).
-      const dt = (backlogMinutes + predictionMinutes + 1) * 60 * 1000;
+      const dt = (backlogMinutes + predictionMinutes) * 60 * 1000;
       if ((max - min) >= dt) {
 
         // XXX: getBetween is inclusive, so we include the top-most data.
@@ -79,9 +79,9 @@ const {
         //       We **do not** however throw away the most recent entry, since this will
         //       serve as the reference input for the next frame. This is possible because 
         //       discardPrice is not min-inclusive.
-        await discardPrice(min + dt - (60 * 1000));
-        await discardMerge(min + dt - (60 * 1000));
-        await discardWords(min + dt - (60 * 1000));
+        await discardPrice(min + dt);
+        await discardMerge(min + dt);
+        await discardWords(min + dt);
       }
     },
   );

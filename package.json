@@ -29,6 +29,7 @@
     "dotenv": "^8.2.0",
     "klona": "^1.1.1",
     "moment": "^2.24.0",
+    "stats-lite": "^2.2.0",
     "twitter": "^1.7.1",
     "type-check": "^0.3.2",
     "word2vec": "^1.1.4"
