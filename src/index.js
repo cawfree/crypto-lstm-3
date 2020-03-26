@@ -19,9 +19,9 @@ const {
 (async () => {
   
   // to generate a prediction, we will use backlogMinutes of data
-  const backlogMinutes = 5;
+  const backlogMinutes = 3;
   // the amount of minutes into the future we will be predicting
-  const predictionMinutes = 5;
+  const predictionMinutes = 2;
 
   // this implies that we need to cut off the top 5 (full) minutes to make a prediction
   // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
@@ -77,10 +77,12 @@ const {
         // XXX:  Here, discard all of the data we would have processed within this frame.
         //       We **do not** however throw away the most recent entry, since this will
         //       serve as the reference input for the next frame. This is possible because 
-        //       discardPrice is not min-inclusive.
-        await discardPrice(min + dt);
-        await discardMerge(min + dt);
-        await discardWords(min + dt);
+        //       discardPrice is not min-inclusive. We also throw away the samples we
+        //       haven't directly trained against; these just get used as reference sets
+        //       for making predictions.
+        await discardPrice(min + (backlogMinutes * 60 * 1000));
+        await discardMerge(min + (backlogMinutes * 60 * 1000));
+        await discardWords(min + (backlogMinutes * 60 * 1000));
       }
     },
   );
