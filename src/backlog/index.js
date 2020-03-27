@@ -98,6 +98,7 @@ const ensureSequential = (obj, step = (60 * 1000)) => {
   const max = Math.max(...diffs);
   // XXX: Enforces that the maximum difference must be a single minute between each record.
   if (max !== step) {
+    console.log('discarding');
     // XXX: Find the index with the biggest distance. Between the first and last.
     const i = diffs.indexOf(max);
     return ensureSequential(

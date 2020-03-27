@@ -16,10 +16,13 @@ const {
   TWITTER_ACCESS_TOKEN_SECRET: access_token_secret,
 } = process.env;
 
+const forceMinutes = t => (
+  moment(t).startOf("minute").toDate().getTime()
+);
+
+const roundToMinute = t => Math.ceil(t / (60 * 1000)) * 60 * 1000;
+      
 (async () => {
-
-  // XXX: Note that we only check prices in increments of five minutes to prevent losses.
-
   // to generate a prediction, we will use backlogMinutes of data
   const backlogMinutes = 15;
   // the amount of minutes into the future we will be predicting
@@ -47,23 +50,25 @@ const {
   const processHashtag = () => ({ text, created_at: created }) => {
     const words = toWords(toSingleLine(text));
     if (words.length > 0) {
-      const t = moment(created).startOf("minute").toDate().getTime();
-      return pushWords(t, words);
+      return pushWords(forceMinutes((created)), words);
     }
     return undefined;
   };
   await createSync(
     "BTC",
     async (values, meta) => {
-      values.map(([t, ...ohlc]) => pushPrice(moment(t).startOf("minute").toDate().getTime(), ohlc));
+      values.map(([t, ...ohlc]) => pushPrice(
+        // XXX: Coerce to nearest minute. (Price data can deviate.)
+        forceMinutes(roundToMinute(t)),
+        ohlc,
+      ));
 
       Object.entries(mergeBacklogs({ prices: getPrice, words: getWords }))
         .map(([t, v]) => pushMerge(Number.parseInt(t), v));
-      // TODO: Need to track missing entries. If they exist, clear the whole lot.
 
       // The minium and maximum are for *sequential* data only. Any non-sequential data is discarded.
       const { min, max } = await getBounds(getMerge);
-      console.log('min is',min, 'max is',max,'diff is',max-min);
+      console.log(min, max, max-min);
       // XXX: The amount of data we've got in the buffer allows us to make a prediction
       //      into the future.
       // XXX: We use +1 minute so that we have a minute of previous information to enter the frame with (this aids comparison).
@@ -92,7 +97,6 @@ const {
         //      our top samples + (predictionMinutes + backlogMinutes).
         const future = getBetween(getMerge, max - (backlogMinutes * 60 * 1000), max);
         const [nextScale] = await predict(future);
-        // TODO: Need to fix this. Basically need to enforce that the keys are sorted.
         // TODO: Can likely elevate this to remove from the manual implementation inside
         //       getSeries?
         const [{ prices: [o] }] = Object.values(future);
