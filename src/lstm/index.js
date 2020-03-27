@@ -103,7 +103,6 @@ export const createLstm = async (getVectors, options = defaultOptions) => {
 
       // XXX: Compute the total relative change in price for the prediction period.
       const dp = (c - o) / o;
-      console.log('training scale',dp);
       const xs = seriesToTensor(series, getVectors, backlogMinutes);
       const ys = tf.stack([tf.tensor1d(new Float32Array([dp]))]);
 

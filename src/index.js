@@ -3,7 +3,7 @@ import moment from "moment";
 
 dotenv();
 
-import { createBacklog, mergeBacklogs, getBounds, getBetween } from "./backlog";
+import { createBacklog, mergeBacklogs, getBounds, getBetween, ensureSequential } from "./backlog";
 import { createLstm } from "./lstm";
 import { createSync } from "./price";
 import { createClient, toSingleLine, toWords } from "./twitter";
@@ -17,11 +17,13 @@ const {
 } = process.env;
 
 (async () => {
-  
+
+  // XXX: Note that we only check prices in increments of five minutes to prevent losses.
+
   // to generate a prediction, we will use backlogMinutes of data
-  const backlogMinutes = 5;
+  const backlogMinutes = 15;
   // the amount of minutes into the future we will be predicting
-  const predictionMinutes = 5;
+  const predictionMinutes = 15;
 
   // this implies that we need to cut off the top 5 (full) minutes to make a prediction
   // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
@@ -59,15 +61,15 @@ const {
         .map(([t, v]) => pushMerge(Number.parseInt(t), v));
       // TODO: Need to track missing entries. If they exist, clear the whole lot.
 
-      // TODO: Should do some threaded intensive processing here.
-      //       Must defer processing until a current round of training is over.
+      // The minium and maximum are for *sequential* data only. Any non-sequential data is discarded.
       const { min, max } = await getBounds(getMerge);
+      console.log('min is',min, 'max is',max,'diff is',max-min);
       // XXX: The amount of data we've got in the buffer allows us to make a prediction
       //      into the future.
       // XXX: We use +1 minute so that we have a minute of previous information to enter the frame with (this aids comparison).
       const dt = (backlogMinutes + predictionMinutes) * 60 * 1000;
       // XXX: Checking for exact bounds causes range errors.
-      if ((max - min) > dt) {
+      if (max >= (min + dt)) {
         // XXX: getBetween is inclusive, so we include the top-most data.
         const data = getBetween(getMerge, min, min + dt);
         const { length: numberOfSegments } = Object.entries(data);

@@ -82,12 +82,40 @@ export const mergeBacklogs = (...args) => {
   throw new Error(`Expected (Object), encountered ${args}.`);
 };
 
-// XXX: Returns the valid minimum and maximum
+// XXX: Ensures that only records consisting of entries divisible by exactly one
+//      second may persist in the backlog.
+const ensureSequential = (obj, step = (60 * 1000)) => {
+  const [...keys] = Object.keys(obj)
+    .map(e => Number.parseInt(e));
+  const { length } = keys;
+  if (length <= 1) {
+    return obj;
+  }
+  const diffs = [];
+  for (let i = 1; i < length; i += 1) {
+    diffs.push(keys[i] - keys[i - 1]);
+  }
+  const max = Math.max(...diffs);
+  // XXX: Enforces that the maximum difference must be a single minute between each record.
+  if (max !== step) {
+    // XXX: Find the index with the biggest distance. Between the first and last.
+    const i = diffs.indexOf(max);
+    return ensureSequential(
+      Object.fromEntries(
+        Object.entries(obj)
+          .filter((_, j) => (j > i)),
+      ),
+    );
+  }
+  return obj;
+};
+
+// XXX: Returns the valid minimum and maximum sequential records across all backlogs.
 export const getBounds = async (...args) => {
   if (typeCheck("[Function]", args) && args.length > 0) {
     const global = args.map(
       (getData) => {
-        const t = Object.keys(getData())
+        const t = Object.keys(ensureSequential(getData()))
           .map(k => Number.parseInt(k));
         return {
           min: Math.min(...t),

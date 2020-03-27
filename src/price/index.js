@@ -19,5 +19,5 @@ export const createSync = async (iso, callback) => setInterval(
     }
     console.warn(`Encountered unexpected duration, "${interval}".`);
   },
-  30 * 1000,
+  5 * 60 * 1000,
 );
