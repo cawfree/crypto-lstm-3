@@ -24,9 +24,9 @@ const roundToMinute = t => Math.ceil(t / (60 * 1000)) * 60 * 1000;
       
 (async () => {
   // to generate a prediction, we will use backlogMinutes of data
-  const backlogMinutes = 15;
+  const backlogMinutes = 30;
   // the amount of minutes into the future we will be predicting
-  const predictionMinutes = 15;
+  const predictionMinutes = 30;
 
   // this implies that we need to cut off the top 5 (full) minutes to make a prediction
   // it also implies that we need at least (5 + 30) *valid* minutes of time data to start training (5 minutes predicts the first 30 minute input)
@@ -68,7 +68,6 @@ const roundToMinute = t => Math.ceil(t / (60 * 1000)) * 60 * 1000;
 
       // The minium and maximum are for *sequential* data only. Any non-sequential data is discarded.
       const { min, max } = await getBounds(getMerge);
-      console.log(min, max, max-min);
       // XXX: The amount of data we've got in the buffer allows us to make a prediction
       //      into the future.
       // XXX: We use +1 minute so that we have a minute of previous information to enter the frame with (this aids comparison).
