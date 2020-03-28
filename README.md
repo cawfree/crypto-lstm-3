@@ -5,7 +5,7 @@
 
 ## Foreward
 
-The application of deep learning to financial forecasting is nothing new. When fed raw historical pricing data, a neural network can propose future trends [based on the time-variant fluctuations]() of the past. In particular, [Long-Short-Term-Memory Recurrent Networks]() have been proven to be [particularly effective]() at this task.
+The application of deep learning to financial forecasting is nothing new. When fed raw historical pricing data, a neural network can propose future trends [based on the time-variant fluctuations]() of the past. In particular, [Long Short Term Memory Recurrent Networks]() have been proven to be [particularly effective]() at this task.
 
 But alas, **Economics is the science of _choice_.**
 
