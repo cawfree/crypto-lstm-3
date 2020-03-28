@@ -1,3 +1,5 @@
+import "@tensorflow/tfjs-node";
+
 import { config as dotenv } from "dotenv";
 import moment from "moment";
 
