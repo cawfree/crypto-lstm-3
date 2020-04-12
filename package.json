@@ -5,13 +5,24 @@
   "main": "dist",
   "repository": "https://github.com/cawfree/crypto-lstm-3",
   "author": "Alex Thomas (@cawfree) <hello@cawfree.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build": "babel src --out-dir dist",
     "start": "node_modules/.bin/babel-node src",
+    "prettify": "yarn prettier --write \"**/*.js\"",
     "test": "jest"
   },
+  "keywords": [
+    "bitcoin",
+    "twitter",
+    "cryptocurrency",
+    "neural",
+    "network",
+    "tensorflow",
+    "lstm",
+    "prediction"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.8.4",
     "@babel/core": "^7.9.0",

@@ -1,10 +1,12 @@
 import klona from "klona";
 import { typeCheck } from "type-check";
 
-const sortByTime = obj => Object.fromEntries(
-  Object.entries(obj)
-    .sort(([t1], [t2]) => (Number.parseInt(t1) - Number.parseInt(t2))),
-);
+const sortByTime = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj).sort(
+      ([t1], [t2]) => Number.parseInt(t1) - Number.parseInt(t2)
+    )
+  );
 
 const createAddThunk = (acc, format, backlog) => (...args) => {
   if (typeCheck(`(Number,${format})`, args)) {
@@ -20,7 +22,7 @@ const createAddThunk = (acc, format, backlog) => (...args) => {
   throw new Error(`Expected (Number, *), encountered ${args}.`);
 };
 
-const createDiscardThunk = backlog => (...args) => {
+const createDiscardThunk = (backlog) => (...args) => {
   if (typeCheck("(Number)", args)) {
     const [t] = args;
     for (const k in backlog) {
@@ -53,29 +55,20 @@ export const mergeBacklogs = (...args) => {
     const [obj] = args;
     const getters = Object.entries(obj);
     if (typeCheck("[(String,Function)]", getters)) {
-      const results = getters
-        .reduce(
-          (obj, [name, fn]) => {
-            const values = fn();
-            return Object.entries(values)
-              .reduce(
-                (o, [t, data]) => {
-                  o[t] = o[t] || {};
-                  o[t][name] = data;
-                  return o;
-                },
-                obj,
-              );
-          },
-          {},
-        );
+      const results = getters.reduce((obj, [name, fn]) => {
+        const values = fn();
+        return Object.entries(values).reduce((o, [t, data]) => {
+          o[t] = o[t] || {};
+          o[t][name] = data;
+          return o;
+        }, obj);
+      }, {});
       return sortByTime(
         Object.fromEntries(
-          Object.entries(results)
-            .filter(
-              ([k, r]) => (Object.keys(r).length === Object.keys(obj).length),
-            ),
-        ),
+          Object.entries(results).filter(
+            ([k, r]) => Object.keys(r).length === Object.keys(obj).length
+          )
+        )
       );
     }
   }
@@ -84,9 +77,8 @@ export const mergeBacklogs = (...args) => {
 
 // XXX: Ensures that only records consisting of entries divisible by exactly one
 //      second may persist in the backlog.
-const ensureSequential = (obj, step = (60 * 1000)) => {
-  const [...keys] = Object.keys(obj)
-    .map(e => Number.parseInt(e));
+const ensureSequential = (obj, step = 60 * 1000) => {
+  const [...keys] = Object.keys(obj).map((e) => Number.parseInt(e));
   const { length } = keys;
   if (length <= 1) {
     return obj;
@@ -101,10 +93,7 @@ const ensureSequential = (obj, step = (60 * 1000)) => {
     // XXX: Find the index with the biggest distance. Between the first and last.
     const i = diffs.indexOf(max);
     return ensureSequential(
-      Object.fromEntries(
-        Object.entries(obj)
-          .filter((_, j) => (j > i)),
-      ),
+      Object.fromEntries(Object.entries(obj).filter((_, j) => j > i))
     );
   }
   return obj;
@@ -113,16 +102,15 @@ const ensureSequential = (obj, step = (60 * 1000)) => {
 // XXX: Returns the valid minimum and maximum sequential records across all backlogs.
 export const getBounds = async (...args) => {
   if (typeCheck("[Function]", args) && args.length > 0) {
-    const global = args.map(
-      (getData) => {
-        const t = Object.keys(ensureSequential(getData()))
-          .map(k => Number.parseInt(k));
-        return {
-          min: Math.min(...t),
-          max: Math.max(...t),
-        };
-      },
-    );
+    const global = args.map((getData) => {
+      const t = Object.keys(ensureSequential(getData())).map((k) =>
+        Number.parseInt(k)
+      );
+      return {
+        min: Math.min(...t),
+        max: Math.max(...t),
+      };
+    });
     return {
       min: Math.max(...global.map(({ min }) => min)),
       max: Math.min(...global.map(({ max }) => max)),
@@ -135,10 +123,9 @@ export const getBetween = (...args) => {
   if (typeCheck("(Function, Number, Number)", args)) {
     const [getData, min, max] = args;
     return Object.fromEntries(
-      Object.entries(getData())
-        .filter(([k]) => (
-          Number.parseInt(k) >= min && Number.parseInt(k) < max
-        )),
+      Object.entries(getData()).filter(
+        ([k]) => Number.parseInt(k) >= min && Number.parseInt(k) < max
+      )
     );
   }
   throw new Error(`Expected (Function, Number, Number), encountered ${args}.`);
